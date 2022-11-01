@@ -1,4 +1,6 @@
 import copy
+from curses import init_pair
+import math
 
 searched_states = set()
 # Each Node has at most 4 children 
@@ -8,17 +10,69 @@ def ucs_queueing_func(nodes, children):
     for child in children:
         nodes.append(child)
     return nodes
+
+def misplaced_queueing_func(nodes, children):
+    for child in children:
+        child.heuristic_cost = misplaced_tile(child.state)
+        #print("COST IS LIKE", child.heuristic_cost)
+        nodes.append(child)
+    #Now sort them by cost
+    def cost(node):
+        return node.heuristic_cost
+
+    nodes.sort(key = lambda x:(x.heuristic_cost, x.depth))
+    print("---------------------------")
+    for i in nodes:
+        print(i.heuristic_cost)
+        print("     ",i.depth)
+
+    return nodes
+
+def manhattan_queueing_func(nodes, children):
+
+    for child in children:
+        child.heuristic_cost = manhattan_distance(child.state)
+        nodes.append(child)
+    #Now sort them by cost
+    def cost(node):
+        return node.heuristic_cost
+        
+    nodes.sort(key = lambda x:(x.heuristic_cost, x.depth))
+    print("---------------------------")
+    for i in nodes:
+        print(i.heuristic_cost)
+    return nodes
+# The misplaced tile heuristic simply counts the amount of tiles that are 
+# in the incorrect location
 def misplaced_tile(state):
     misplaced = 0
-    proper_arrangement = [['1', '2', '3'], ['4', '5', '6'], ['7', '8', '0']]
+    proper_arrangement = [[1, 2, 3], [4, 5, 6], [7, 8, 0]]
+    # Iterate through the grid and count the amount misplaced
     for i in range(len(state[0])):
         for j in range(len(state)):
             if state[i][j] != 0 and state[i][j] != proper_arrangement[i][j]:
                 misplaced+=1
-    
+
     return misplaced
 
-            
+def manhattan_distance(state):
+    proper_arrangement = [[1, 2, 3], [4, 5, 6], [7, 8, 0]]
+    dist =0
+    for i in range(len(state[0])):
+        for j in range(len(state)):
+            #See here if its misplaced
+            if state[i][j] != 0 and state[i][j] != proper_arrangement[i][j]:
+                #Now calculate the location for the proper square
+                row = math.floor(state[i][j] / len(proper_arrangement))
+                col = 0
+                #Adjustment for starting at 0
+                if(state[i][j] % len(proper_arrangement[0]) == 0):
+                    col = 2
+                col = state[i][j] % len(proper_arrangement[0])
+                dist += (abs(row -i) + abs(col - j))
+    return dist
+
+
 
 def make_queue(init_state):
     q = []
@@ -37,7 +91,7 @@ def expand(node, searched_states):
     column = 0
     for i in range(len(node.state[0])):
         for j in range(len(node.state)):
-            if node.state[i][j] == '0':
+            if node.state[i][j] == 0:
                 row = i 
                 column = j 
 
@@ -48,7 +102,7 @@ def expand(node, searched_states):
     if column > 0:
         left_copy = copy.deepcopy(node.state)
         temp = left_copy[row][column-1]
-        left_copy[row][column-1] = '0'
+        left_copy[row][column-1] = 0
         left_copy[row][column] = temp
         #Check to see if this is a duplicate state, if so ignore
         if tuple(map(tuple, left_copy)) not in searched_states:
@@ -59,7 +113,7 @@ def expand(node, searched_states):
     if column < 2:
         right_copy = copy.deepcopy(node.state)
         temp = right_copy[row][column+1]
-        right_copy[row][column+1] = '0'
+        right_copy[row][column+1] = 0
         right_copy[row][column] = temp
          #Check to see if this is a duplicate state, if so ignore
         if tuple(map(tuple, right_copy)) not in searched_states:
@@ -69,7 +123,7 @@ def expand(node, searched_states):
     if row > 0:
         up_copy = copy.deepcopy(node.state)
         temp = up_copy[row-1][column]
-        up_copy[row-1][column] = '0'
+        up_copy[row-1][column] = 0
         up_copy[row][column] = temp
          #Check to see if this is a duplicate state, if so ignore
         if tuple(map(tuple, up_copy)) not in searched_states:
@@ -81,7 +135,7 @@ def expand(node, searched_states):
     if row < 2:
         down_copy = copy.deepcopy(node.state)
         temp = down_copy[row+1][column]
-        down_copy[row+1][column] = '0'
+        down_copy[row+1][column] = 0
         down_copy[row][column] = temp
          #Check to see if this is a duplicate state, if so ignore
         if tuple(map(tuple, down_copy)) not in searched_states :
@@ -110,12 +164,13 @@ def general_search(problem,queueing_function):
         nodes= queueing_function(nodes,expand(node,searched_states))
 
 
-state = [['1', '2', '3'], ['4', '5', '6'], ['7', '8', '0']]
+state = [[1, 2, 3], [4, 5, 6], [7, 8, 0]]
 
 class Node:
-  def __init__(self, state, depth = 0):
+  def __init__(self, state, depth = 0, heuristic_cost = 0):
     self.state = state
     self.depth = depth
+    self.heuristic_cost = heuristic_cost
 
 
 class Problem:
@@ -123,7 +178,7 @@ class Problem:
         self.init_state = state
 
     def goal_test(self, state):
-        goal_state= [['1', '2', '3'], ['4', '5', '6'], ['7', '8', '0']]
+        goal_state= [[1, 2, 3], [4, 5, 6], [7, 8, 0]]
     
         if state == goal_state:
             return True
@@ -131,16 +186,26 @@ class Problem:
         return False
 
 
+
+
 def driver():
     print("Welcome to Justins 8-Tile Puzzle Project")
-    state = [['8', '6', '7'], ['2', '5', '4'], ['3', '0', '1']]
+    state = [[4, 1, 2], [5, 3, 0], [7, 8, 6]]
+    choice = ''
+    #while choice != '1' or choice != '2' or choice != '3':
+    print("Enter 1 If you would like to search using Uniform Cost Search")
+    print("Enter 2 If you would like to search using A* and the Misplaced Tile Heuristic")
+    print("Enter 3 If you would like to search using A* and the Manhattan Heuristic")
+    #choice = input()
+
     problem = Problem(state)
-    node = general_search(problem,ucs_queueing_func)
+
+    node = general_search(problem,manhattan_queueing_func)
     print("FOUND THE SOLUTION",node.state)
     #expand(Node(state),searched_states)
         
 driver()
-        
+#misplaced_tile([[2, 1, 6], [0, 5, 3], [4, 7, 8]])
         
         
 
