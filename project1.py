@@ -8,6 +8,17 @@ def ucs_queueing_func(nodes, children):
     for child in children:
         nodes.append(child)
     return nodes
+def misplaced_tile(state):
+    misplaced = 0
+    proper_arrangement = [['1', '2', '3'], ['4', '5', '6'], ['7', '8', '0']]
+    for i in range(len(state[0])):
+        for j in range(len(state)):
+            if state[i][j] != 0 and state[i][j] != proper_arrangement[i][j]:
+                misplaced+=1
+    
+    return misplaced
+
+            
 
 def make_queue(init_state):
     q = []
