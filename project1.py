@@ -1,30 +1,26 @@
 import copy
-from curses import init_pair
+import time
 import math
+import queue
 
-searched_states = set()
 # Each Node has at most 4 children 
 
 #UCS here utilizes FIFO for nodes.
 def ucs_queueing_func(nodes, children):
     for child in children:
-        nodes.append(child)
+        nodes.put(child)
     return nodes
 
 def misplaced_queueing_func(nodes, children):
     for child in children:
         child.heuristic_cost = misplaced_tile(child.state)
         #print("COST IS LIKE", child.heuristic_cost)
-        nodes.append(child)
+        nodes.put(child)
     #Now sort them by cost
     def cost(node):
         return node.heuristic_cost
 
-    nodes.sort(key = lambda x:(x.heuristic_cost, x.depth))
-    print("---------------------------")
-    for i in nodes:
-        print(i.heuristic_cost)
-        print("     ",i.depth)
+   # nodes.sort(key = lambda x:(x.heuristic_cost + x.depth, x.depth))
 
     return nodes
 
@@ -32,15 +28,10 @@ def manhattan_queueing_func(nodes, children):
 
     for child in children:
         child.heuristic_cost = manhattan_distance(child.state)
-        nodes.append(child)
-    #Now sort them by cost
-    def cost(node):
-        return node.heuristic_cost
-        
-    nodes.sort(key = lambda x:(x.heuristic_cost, x.depth))
-    print("---------------------------")
-    for i in nodes:
-        print(i.heuristic_cost)
+        nodes.put(child)
+    #Now sort them by cost        
+   #nodes.sort(key = lambda x:(x.heuristic_cost + x.depth, x.depth))
+
     return nodes
 # The misplaced tile heuristic simply counts the amount of tiles that are 
 # in the incorrect location
@@ -64,19 +55,15 @@ def manhattan_distance(state):
             if state[i][j] != 0 and state[i][j] != proper_arrangement[i][j]:
                 #Now calculate the location for the proper square
                 row = math.floor(state[i][j] / len(proper_arrangement))
-                col = 0
-                #Adjustment for starting at 0
-                if(state[i][j] % len(proper_arrangement[0]) == 0):
-                    col = 2
-                col = state[i][j] % len(proper_arrangement[0])
-                dist += (abs(row -i) + abs(col - j))
+                #Adjustment for starting at 1
+                col = (state[i][j]-1) % len(proper_arrangement[0])
+                dist += (abs(row - i) + abs(col - j))
     return dist
 
-
-
+#Create the initial queue
 def make_queue(init_state):
-    q = []
-    q.append(Node(init_state))
+    q = queue.PriorityQueue()
+    q.put(Node(init_state))
     return q
 
 #Expand all of node's children
@@ -149,17 +136,22 @@ def general_search(problem,queueing_function):
     nodes = make_queue(problem.init_state)
     maxQ = 0
     nodesExpanded = 0;
+    searched_states = set()
+    start = time.time()
     while(1):
         if not nodes:
             return "Failure"
-        if maxQ < len(nodes):
-            maxQ = len(nodes)
-        node = nodes.pop(0)
+        if maxQ < nodes.qsize():
+            maxQ = nodes.qsize()
+        node = nodes.get()
         nodesExpanded+=1
         if problem.goal_test(node.state):
             print("DEPTH IS ", node.depth)
             print("MAX QUEUE SIZE IS ", maxQ)
             print("NODE EXPANDED IS", nodesExpanded)
+            end = time.time()
+            print("Search took: ", end - start, "seconds!")
+
             return node
         nodes= queueing_function(nodes,expand(node,searched_states))
 
@@ -167,10 +159,19 @@ def general_search(problem,queueing_function):
 state = [[1, 2, 3], [4, 5, 6], [7, 8, 0]]
 
 class Node:
-  def __init__(self, state, depth = 0, heuristic_cost = 0):
-    self.state = state
-    self.depth = depth
-    self.heuristic_cost = heuristic_cost
+    def __init__(self, state, depth = 0, heuristic_cost = 0):
+        self.state = state
+        self.depth = depth
+        self.heuristic_cost = heuristic_cost
+    def __lt__(self,other):
+        if(self.depth + self.heuristic_cost) == (other.depth + other.heuristic_cost):
+            return self.depth < other.depth
+        return (self.depth + self.heuristic_cost) < (other.depth + other.heuristic_cost)
+    def __gt__(self,other):
+        if(self.depth + self.heuristic_cost) == (other.depth + other.heuristic_cost):
+            return self.depth > other.depth
+        return (self.depth + self.heuristic_cost) > (other.depth + other.heuristic_cost)
+
 
 
 class Problem:
@@ -190,7 +191,7 @@ class Problem:
 
 def driver():
     print("Welcome to Justins 8-Tile Puzzle Project")
-    state = [[4, 1, 2], [5, 3, 0], [7, 8, 6]]
+    state = [[0, 7, 2], [4, 6, 1], [3, 5, 8]]
     choice = ''
     #while choice != '1' or choice != '2' or choice != '3':
     print("Enter 1 If you would like to search using Uniform Cost Search")
@@ -199,13 +200,13 @@ def driver():
     #choice = input()
 
     problem = Problem(state)
-
-    node = general_search(problem,manhattan_queueing_func)
-    print("FOUND THE SOLUTION",node.state)
-    #expand(Node(state),searched_states)
+    #general_search(problem,ucs_queueing_func)
+    #general_search(problem,misplaced_queueing_func)
+    
+    general_search(problem,manhattan_queueing_func)
+    #print("FOUND THE SOLUTION",node.state)
         
 driver()
-#misplaced_tile([[2, 1, 6], [0, 5, 3], [4, 7, 8]])
         
         
 
