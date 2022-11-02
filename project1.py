@@ -11,15 +11,17 @@ def ucs_queueing_func(nodes, children):
   return nodes
 
 
+#The misplaced queuing functuction calcualated the heuristic cost of a child
+#then puts it into the priority queue
 def misplaced_queueing_func(nodes, children):
   for child in children:
     child.heuristic_cost = misplaced_tile(child.state)
     nodes.put(child)
   return nodes
 
-
+#The manhattan queuing functuction calcualated the heuristic cost of a child
+#then puts it into the priority queue
 def manhattan_queueing_func(nodes, children):
-
   for child in children:
     child.heuristic_cost = manhattan_distance(child.state)
     nodes.put(child)
@@ -129,37 +131,39 @@ def expand(node, searched_states):
 
 #This general search function stems from the given psuedo code from Prof. Keogh's slides
 def general_search(problem, queueing_function):
-
   nodes = make_queue(problem.init_state)
   maxQ = 0
   nodesExpanded = 0
   searched_states = set()
   start = time.time()
+  #If set to True, this will print out the trace of expanded nodes
+
+  TRACE = True
   while (1):
     if not nodes:
-      return "Failure"
+        return "Failure"
     if maxQ < nodes.qsize():
-      maxQ = nodes.qsize()
+        maxQ = nodes.qsize()
     node = nodes.get()
     nodesExpanded += 1
-
+    if TRACE:
+        print("The best node to expand with a h(n) of",node.depth,"and g(n) of", node.heuristic_cost," is")
+        for i in node.state:
+            print(i)
     if problem.goal_test(node.state):
-      print("DEPTH IS ", node.depth)
-      print("MAX QUEUE SIZE IS ", maxQ)
-      print("NODE EXPANDED IS", nodesExpanded)
-      end = time.time()
-      print("Search took: ", end - start, "seconds!")
+        print("We have reached the goal state!")
+        print("DEPTH IS", node.depth)
+        print("MAX QUEUE SIZE IS", maxQ)
+        print("NODES EXPANDED IS", nodesExpanded)
+        end = time.time()
+        print("SEARCH TOOK :", end - start, "seconds!")
 
-      return node
+        return node
     #Update the node pqueue with the new pqueue with newly expanded nodes!
     nodes = queueing_function(nodes, expand(node, searched_states))
 
-
-state = [[1, 2, 3], [4, 5, 6], [7, 8, 0]]
-
-
+#Node class in order to contain all the node data
 class Node:
-
   def __init__(self, state, depth=0, heuristic_cost=0):
     self.state = state
     self.depth = depth
@@ -183,7 +187,6 @@ class Node:
 
 
 class Problem:
-
   def __init__(self, state):
     self.init_state = state
 
@@ -197,7 +200,7 @@ class Problem:
 
 
 def driver():
-  print("Welcome to Justins 8-Tile Puzzle Project")
+  print("Welcome to Justin's 8-Tile Puzzle Project")
   state = [[], [], []]
   choice = ''
   print(
