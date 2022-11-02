@@ -202,7 +202,11 @@ def driver():
     problem = Problem(state)
     #general_search(problem,ucs_queueing_func)
     #general_search(problem,misplaced_queueing_func)
-    
+
+    general_search(problem,ucs_queueing_func)
+    print("MIS")
+    general_search(problem,misplaced_queueing_func)
+    print("manhat")
     general_search(problem,manhattan_queueing_func)
     #print("FOUND THE SOLUTION",node.state)
         
